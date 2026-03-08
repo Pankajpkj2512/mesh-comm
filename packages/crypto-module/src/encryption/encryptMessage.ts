@@ -4,7 +4,7 @@ export async function encryptMessage(
   message: string,
   recipientPub: Uint8Array,
   senderPriv: Uint8Array,
-) {
+): Promise<{ cipher: string; nonce: string }> {
   await sodium.ready;
   const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
   const cipher = sodium.crypto_box_easy(
