@@ -1,10 +1,6 @@
-export type ImportedContact = {
-  userId: string;
-  publicKey: string;
-};
+// BUG #8 FIX: This file is deprecated.
+// importContactFromQR has been consolidated into qrExport.ts to eliminate duplicate logic.
+// Import from qrExport instead:
+//   import { importIdentityFromQR } from "./qrExport";
 
-export function importContactFromQR(qrData: string): ImportedContact {
-  const obj = JSON.parse(qrData);
-  if (!obj.userId || !obj.publicKey) throw new Error("Invalid contact QR");
-  return { userId: obj.userId, publicKey: obj.publicKey };
-}
+export { importContactFromQR } from "./qrExport";
