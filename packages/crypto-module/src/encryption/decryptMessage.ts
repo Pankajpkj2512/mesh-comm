@@ -4,7 +4,7 @@ export async function decryptMessage(
   encrypted: { cipher: string; nonce: string },
   recipientPriv: Uint8Array,
   senderPub: Uint8Array,
-) {
+): Promise<string> {
   await sodium.ready;
   const cipher = sodium.from_base64(
     encrypted.cipher,
