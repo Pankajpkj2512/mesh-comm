@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeshComm — Decentralized Encrypted Messenger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a24;
+      --surface3: #22222f;
+      --border: #2a2a3a;
+      --accent: #00ff9d;
+      --accent2: #7c3aed;
+      --accent3: #f59e0b;
+      --danger: #ef4444;
+      --text: #e8e8f0;
+      --text2: #8888aa;
+      --text3: #444460;
+      --glow: 0 0 20px rgba(0, 255, 157, 0.15);
+      --glow2: 0 0 30px rgba(124, 58, 237, 0.2);
+      --radius: 12px;
+      --font-mono: 'Space Mono', monospace;
+      --font-sans: 'Syne', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Layout */
+    .app {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      grid-template-rows: 60px 1fr;
+      height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ─── TOPBAR ─── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 10, 15, 0.9);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      position: relative;
+    }
+
+    .logo-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      background: var(--surface);
+      transition: all 0.3s;
+    }
+
+    .status-pill.connected {
+      border-color: rgba(0, 255, 157, 0.3);
+      color: var(--accent);
+      background: rgba(0, 255, 157, 0.05);
+      box-shadow: var(--glow);
+    }
+
+    .status-pill.scanning {
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--accent3);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .dot.pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.7);
+      }
+    }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text3);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* Identity Card */
+    .identity-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .identity-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .identity-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--bg);
+    }
+
+    .identity-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .identity-id {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text3);
+      word-break: break-all;
+    }
+
+    .identity-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+    }
+
+    .btn-accent:hover {
+      background: #00e68a;
+      transform: translateY(-1px);
+      box-shadow: var(--glow);
+    }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Bluetooth scan section */
+    .scan-btn-wrap {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Peers list */
+    .peers-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .peers-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .peers-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .peers-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .peer-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid transparent;
+      margin-bottom: 2px;
+      position: relative;
+    }
+
+    .peer-item:hover {
+      background: var(--surface2);
+      border-color: var(--border);
+    }
+
+    .peer-item.active {
+      background: rgba(0, 255, 157, 0.06);
+      border-color: rgba(0, 255, 157, 0.2);
+    }
+
+    .peer-item.active .peer-name {
+      color: var(--accent);
+    }
+
+    .peer-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      color: var(--bg);
+    }
+
+    .peer-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .peer-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .peer-status {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .peer-status .dot {
+      width: 5px;
+      height: 5px;
+    }
+
+    .peer-status.online .dot {
+      background: var(--accent);
+    }
+
+    .peer-status.offline .dot {
+      background: var(--text3);
+    }
+
+    .peer-unread {
+      background: var(--accent);
+      color: var(--bg);
+      border-radius: 100px;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .empty-peers {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    /* ─── MAIN AREA ─── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* ─── PANELS ─── */
+    .panel {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .panel.active {
+      display: flex;
+    }
+
+    /* Welcome panel */
+    .welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 40px;
+    }
+
+    .welcome-glyph {
+      width: 80px;
+      height: 80px;
+      opacity: 0.15;
+    }
+
+    .welcome h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text2);
+    }
+
+    .welcome p {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text3);
+      text-align: center;
+      max-width: 360px;
+      line-height: 1.8;
+    }
+
+    /* Chat header */
+    .chat-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-peer-name {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .chat-peer-key {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    .chat-header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .message-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 70%;
+      animation: msgIn 0.2s ease;
+    }
+
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message-group.mine {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message-group.theirs {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message-bubble {
+      padding: 9px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      position: relative;
+      word-break: break-word;
+    }
+
+    .message-group.mine .message-bubble {
+      background: var(--accent2);
+      color: #e0d0ff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-group.theirs .message-bubble {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-meta {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text3);
+      padding: 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .message-encrypted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: var(--accent);
+      font-size: 9px;
+    }
+
+    .system-message {
+      align-self: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text3);
+      padding: 4px 12px;
+      background: var(--surface2);
+      border-radius: 100px;
+      border: 1px solid var(--border);
+    }
+
+    /* Input bar */
+    .input-bar {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .input-wrap {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: flex-end;
+      padding: 4px 4px 4px 14px;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: rgba(0, 255, 157, 0.3);
+      box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.04);
+    }
+
+    .msg-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      resize: none;
+      min-height: 36px;
+      max-height: 120px;
+      padding: 8px 0;
+      line-height: 1.4;
+    }
+
+    .msg-input::placeholder {
+      color: var(--text3);
+    }
+
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      color: var(--bg);
+    }
+
+    .send-btn:hover {
+      background: #00e68a;
+      transform: scale(1.05);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Encryption indicator */
+    .enc-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--accent);
+      padding: 3px 8px;
+      border-top: 1px solid rgba(0, 255, 157, 0.1);
+      background: rgba(0, 255, 157, 0.03);
+    }
+
+    /* ─── MODALS ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      width: 460px;
+      max-width: 90vw;
+      position: relative;
+      transform: translateY(10px);
+      transition: transform 0.2s;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-overlay.open .modal {
+      transform: translateY(0);
+    }
+
+    .modal h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text3);
+      margin-bottom: 20px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 28px;
+      height: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text2);
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover {
+      background: var(--surface3);
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: rgba(0, 255, 157, 0.3);
+    }
+
+    .form-input::placeholder {
+      color: var(--text3);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+
+    /* QR display */
+    .qr-box {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      display: inline-flex;
+      margin: 12px auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .qr-box img {
+      width: 160px;
+      height: 160px;
+    }
+
+    /* Key display box */
+    .key-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      word-break: break-all;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    /* Bluetooth scan modal list */
+    .bt-device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .bt-device {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      transition: border-color 0.15s;
+    }
+
+    .bt-device:hover {
+      border-color: rgba(0, 255, 157, 0.2);
+    }
+
+    .bt-device-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bt-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent2);
+      font-size: 14px;
+    }
+
+    .bt-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .bt-rssi {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text3);
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: toastIn 0.3s ease;
+      max-width: 320px;
+    }
+
+    .toast.success {
+      border-color: rgba(0, 255, 157, 0.3);
+      color: var(--accent);
+    }
+
+    .toast.error {
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+
+    .toast.info {
+      border-color: rgba(124, 58, 237, 0.3);
+      color: #a78bfa;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px auto 1fr;
+      }
+
+      .sidebar {
+        max-height: 240px;
+        grid-row: 2;
+      }
+
+      .main {
+        grid-row: 3;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="14" r="3" fill="#00ff9d" />
+            <circle cx="4" cy="8" r="2.5" fill="#7c3aed" opacity="0.8" />
+            <circle cx="24" cy="8" r="2.5" fill="#7c3aed" opacity="0.8" />
+            <circle cx="4" cy="20" r="2.5" fill="#7c3aed" opacity="0.8" />
+            <circle cx="24" cy="20" r="2.5" fill="#7c3aed" opacity="0.8" />
+            <line x1="14" y1="14" x2="4" y2="8" stroke="#00ff9d" stroke-width="1" opacity="0.4" />
+            <line x1="14" y1="14" x2="24" y2="8" stroke="#00ff9d" stroke-width="1" opacity="0.4" />
+            <line x1="14" y1="14" x2="4" y2="20" stroke="#00ff9d" stroke-width="1" opacity="0.4" />
+            <line x1="14" y1="14" x2="24" y2="20" stroke="#00ff9d" stroke-width="1" opacity="0.4" />
+          </svg>
+        </div>
+        Mesh<span>Comm</span>
+      </div>
+      <div class="topbar-right">
+        <div class="status-pill" id="btStatus">
+          <div class="dot"></div>
+          <span>Bluetooth Off</span>
+        </div>
+        <div class="status-pill" id="encStatus">
+          <div class="dot" style="background:var(--accent)"></div>
+          <span>E2E Encrypted</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('identityModal')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a3 3 0 0 0-3 3v1h10v-1a3 3 0 0 0-3-3z" />
+          </svg>
+          Identity
+        </button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <!-- My Identity -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">My Identity</div>
+        <div class="identity-card" id="myIdentityCard">
+          <div class="identity-avatar" id="myAvatar" style="background:#2a2a3a; color:#666">?</div>
+          <div class="identity-name" id="myName">No identity</div>
+          <div class="identity-id" id="myUserId">Generate an identity to start</div>
+          <div class="identity-actions">
+            <button class="btn btn-accent btn-sm" onclick="generateIdentity()" id="genBtn">Generate</button>
+            <button class="btn btn-ghost btn-sm" onclick="openModal('qrModal')" id="shareBtn" disabled>Share QR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bluetooth -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Bluetooth Peers</div>
+        <div class="scan-btn-wrap">
+          <button class="btn btn-ghost btn-sm" onclick="startBluetoothScan()" id="scanBtn" style="flex:1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6.5 6.5l11 11M17.5 6.5L12 12l5.5 5.5M6.5 17.5L12 12" />
+            </svg>
+            Scan
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="openModal('addPeerModal')">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2H9v4a1 1 0 0 1-2 0V9H3a1 1 0 0 1 0-2h4V3a1 1 0 0 1 1-1z" />
+            </svg>
+            Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Peers list -->
+      <div class="peers-list" id="peersList">
+        <div class="empty-peers" id="emptyPeers">
+          No peers yet.<br>Scan for Bluetooth<br>devices or add manually.
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- Welcome panel -->
+      <div class="panel active" id="welcomePanel">
+        <div class="welcome">
+          <svg class="welcome-glyph" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="8" fill="#00ff9d" />
+            <circle cx="10" cy="20" r="6" fill="#7c3aed" />
+            <circle cx="70" cy="20" r="6" fill="#7c3aed" />
+            <circle cx="10" cy="60" r="6" fill="#7c3aed" />
+            <circle cx="70" cy="60" r="6" fill="#7c3aed" />
+            <line x1="40" y1="40" x2="10" y2="20" stroke="#00ff9d" stroke-width="1.5" opacity="0.5" />
+            <line x1="40" y1="40" x2="70" y2="20" stroke="#00ff9d" stroke-width="1.5" opacity="0.5" />
+            <line x1="40" y1="40" x2="10" y2="60" stroke="#00ff9d" stroke-width="1.5" opacity="0.5" />
+            <line x1="40" y1="40" x2="70" y2="60" stroke="#00ff9d" stroke-width="1.5" opacity="0.5" />
+          </svg>
+          <h2>Decentralized. Encrypted. Yours.</h2>
+          <p>Generate your identity, scan for Bluetooth peers, and start sending end-to-end encrypted messages — no
+            servers, no accounts, no tracking.</p>
+          <button class="btn btn-accent" onclick="generateIdentity()">Generate Identity</button>
+        </div>
+      </div>
+
+      <!-- Chat panel -->
+      <div class="panel" id="chatPanel">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <div class="peer-avatar" id="chatAvatar"
+              style="width:36px;height:36px;border-radius:8px;background:#2a2a3a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;">
+              ?</div>
+            <div>
+              <div class="chat-peer-name" id="chatPeerName">—</div>
+              <div class="chat-peer-key" id="chatPeerKey">No public key</div>
+            </div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showPeerInfo()" id="peerInfoBtn">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm.75 10.5h-1.5v-5h1.5v5zm0-6.5h-1.5V3.5h1.5V5z" />
+              </svg>
+              Info
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="disconnectPeer()" id="disconnectBtn">Disconnect</button>
+          </div>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="enc-indicator">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+            <path
+              d="M8 1a4 4 0 0 0-4 4v1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm2.5 5H5.5V5a2.5 2.5 0 0 1 5 0v1z" />
+          </svg>
+          Messages encrypted with Curve25519 · Ed25519 identity
+        </div>
+
+        <div class="input-bar">
+          <div class="input-wrap">
+            <textarea class="msg-input" id="msgInput" placeholder="Type an encrypted message…" rows="1"
+              onkeydown="handleEnter(event)" oninput="autoResize(this)"></textarea>
+            <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ─── MODALS ─── -->
+
+  <!-- Identity Modal -->
+  <div class="modal-overlay" id="identityModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('identityModal')">✕</button>
+      <h3>My Identity</h3>
+      <div class="modal-sub">Your Ed25519 cryptographic identity. Never share your private key.</div>
+      <div class="form-group">
+        <div class="form-label">User ID</div>
+        <div class="key-box" id="modalUserId">—</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Public Key (safe to share)</div>
+        <div class="key-box" id="modalPubKey">—</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Private Key (NEVER share)</div>
+        <div class="key-box" id="modalPrivKey" style="color:var(--danger);filter:blur(4px);cursor:pointer;"
+          onclick="this.style.filter='none'" title="Click to reveal">Click to reveal</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal('identityModal')">Close</button>
+        <button class="btn btn-accent" onclick="generateIdentity(); closeModal('identityModal')">Regenerate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal" style="text-align:center">
+      <button class="modal-close" onclick="closeModal('qrModal')">✕</button>
+      <h3>Share Identity via QR</h3>
+      <div class="modal-sub">Let a peer scan this to add you as a contact</div>
+      <div class="qr-box">
+        <canvas id="qrCanvas"></canvas>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-top:8px" id="qrUserId"></div>
+      <div class="form-actions" style="justify-content:center">
+        <button class="btn btn-ghost" onclick="closeModal('qrModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Peer Modal -->
+  <div class="modal-overlay" id="addPeerModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('addPeerModal')">✕</button>
+      <h3>Add Peer Manually</h3>
+      <div class="modal-sub">Enter the peer's public key and a display name</div>
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input class="form-input" id="peerNameInput" placeholder="e.g. Alice" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Public Key (base64)</label>
+        <textarea class="form-input" id="peerKeyInput" placeholder="Paste Ed25519 public key…" rows="3"
+          style="resize:none"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal('addPeerModal')">Cancel</button>
+        <button class="btn btn-accent" onclick="addPeerManually()">Add Peer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bluetooth Scan Modal -->
+  <div class="modal-overlay" id="btScanModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('btScanModal')">✕</button>
+      <h3>Scanning for Peers</h3>
+      <div class="modal-sub" id="btScanStatus">Searching for nearby Bluetooth devices…</div>
+      <div style="display:flex;justify-content:center;margin:16px 0" id="btSpinnerWrap">
+        <div class="spinner" style="width:28px;height:28px;border-width:3px"></div>
+      </div>
+      <div class="bt-device-list" id="btDeviceList"></div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal('btScanModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peer Info Modal -->
+  <div class="modal-overlay" id="peerInfoModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('peerInfoModal')">✕</button>
+      <h3 id="peerInfoName">Peer Info</h3>
+      <div class="modal-sub">Cryptographic identity of this peer</div>
+      <div class="form-group">
+        <div class="form-label">Public Key</div>
+        <div class="key-box" id="peerInfoKey">—</div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Connection</div>
+        <div class="key-box" id="peerInfoConn" style="color:var(--text2)">—</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="closeModal('peerInfoModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ─── QR lib (lightweight) ─── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script>
+    // ─────────────────────────────────────────────
+    // STATE
+    // ─────────────────────────────────────────────
+    const state = {
+      identity: null,       // { userId, publicKey, privateKey }
+      peers: {},            // { [peerId]: { name, publicKey, messages[], online, btDevice } }
+      activePeer: null,
+      btDevice: null,
+      btServer: null,
+      btChar: null,
+    };
+
+    // Color palette for avatars
+    const COLORS = ['#00ff9d', '#7c3aed', '#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#f97316'];
+    const getColor = (str) => COLORS[Math.abs(str.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % COLORS.length];
+    const getInitials = (name) => name.slice(0, 2).toUpperCase();
+
+    // ─────────────────────────────────────────────
+    // CRYPTO (using libsodium via CDN)
+    // ─────────────────────────────────────────────
+    let sodium = null;
+
+    async function initSodium() {
+      // Load libsodium dynamically
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/libsodium-wrappers/0.7.13/sodium.js';
+        script.onload = async () => {
+          await window.sodium.ready;
+          sodium = window.sodium;
+          resolve();
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    async function cryptoGenerateIdentity() {
+      await sodium.ready;
+      const kp = sodium.crypto_sign_keypair();
+      const userId = sodium.to_base64(sodium.crypto_generichash(16, kp.publicKey), sodium.base64_variants.ORIGINAL);
+      return {
+        userId,
+        publicKey: sodium.to_base64(kp.publicKey, sodium.base64_variants.ORIGINAL),
+        privateKey: sodium.to_base64(kp.privateKey, sodium.base64_variants.ORIGINAL),
+      };
+    }
+
+    async function cryptoEncrypt(message, recipientPubB64, senderPrivB64) {
+      await sodium.ready;
+      const recipientPub = sodium.crypto_sign_ed25519_pk_to_curve25519(
+        sodium.from_base64(recipientPubB64, sodium.base64_variants.ORIGINAL)
+      );
+      const senderPriv = sodium.crypto_sign_ed25519_sk_to_curve25519(
+        sodium.from_base64(senderPrivB64, sodium.base64_variants.ORIGINAL)
+      );
+      const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
+      const cipher = sodium.crypto_box_easy(message, nonce, recipientPub, senderPriv);
+      return {
+        cipher: sodium.to_base64(cipher, sodium.base64_variants.ORIGINAL),
+        nonce: sodium.to_base64(nonce, sodium.base64_variants.ORIGINAL),
+      };
+    }
+
+    async function cryptoDecrypt(encrypted, senderPubB64, recipientPrivB64) {
+      await sodium.ready;
+      const senderPub = sodium.crypto_sign_ed25519_pk_to_curve25519(
+        sodium.from_base64(senderPubB64, sodium.base64_variants.ORIGINAL)
+      );
+      const recipientPriv = sodium.crypto_sign_ed25519_sk_to_curve25519(
+        sodium.from_base64(recipientPrivB64, sodium.base64_variants.ORIGINAL)
+      );
+      const cipher = sodium.from_base64(encrypted.cipher, sodium.base64_variants.ORIGINAL);
+      const nonce = sodium.from_base64(encrypted.nonce, sodium.base64_variants.ORIGINAL);
+      const decrypted = sodium.crypto_box_open_easy(cipher, nonce, senderPub, recipientPriv);
+      return new TextDecoder().decode(decrypted);
+    }
+
+    // ─────────────────────────────────────────────
+    // IDENTITY
+    // ─────────────────────────────────────────────
+    async function generateIdentity() {
+      if (!sodium) {
+        toast('Initializing crypto…', 'info');
+        await initSodium();
+      }
+      state.identity = await cryptoGenerateIdentity();
+      updateIdentityUI();
+      toast('Identity generated ✓', 'success');
+
+      // Show chat panel if identity was just created
+      if (Object.keys(state.peers).length === 0) {
+        showPanel('welcomePanel');
+      }
+    }
+
+    function updateIdentityUI() {
+      const id = state.identity;
+      if (!id) return;
+
+      const short = id.userId.slice(0, 8) + '…';
+      const color = getColor(id.userId);
+      const initials = 'ME';
+
+      document.getElementById('myAvatar').textContent = initials;
+      document.getElementById('myAvatar').style.background = color;
+      document.getElementById('myAvatar').style.color = '#0a0a0f';
+      document.getElementById('myName').textContent = 'Me (' + short + ')';
+      document.getElementById('myUserId').textContent = id.userId;
+      document.getElementById('shareBtn').disabled = false;
+
+      // Modal
+      document.getElementById('modalUserId').textContent = id.userId;
+      document.getElementById('modalPubKey').textContent = id.publicKey;
+      document.getElementById('modalPrivKey').textContent = id.privateKey;
+      document.getElementById('modalPrivKey').style.filter = 'blur(4px)';
+
+      // QR
+      document.getElementById('qrUserId').textContent = 'ID: ' + id.userId;
+    }
+
+    // ─────────────────────────────────────────────
+    // PEERS
+    // ─────────────────────────────────────────────
+    function addPeer(name, publicKey, online = false, btDevice = null) {
+      const peerId = 'peer_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      state.peers[peerId] = { name, publicKey, messages: [], online, btDevice, peerId };
+      renderPeersList();
+
+      // Add system message
+      addSystemMessage(peerId, `Connected to ${name}`);
+      return peerId;
+    }
+
+    function addPeerManually() {
+      const name = document.getElementById('peerNameInput').value.trim();
+      const key = document.getElementById('peerKeyInput').value.trim();
+      if (!name) { toast('Enter a display name', 'error'); return; }
+      if (!key) { toast('Enter a public key', 'error'); return; }
+
+      const peerId = addPeer(name, key, false);
+      closeModal('addPeerModal');
+      document.getElementById('peerNameInput').value = '';
+      document.getElementById('peerKeyInput').value = '';
+      selectPeer(peerId);
+      toast(`${name} added`, 'success');
+    }
+
+    function renderPeersList() {
+      const list = document.getElementById('peersList');
+      const empty = document.getElementById('emptyPeers');
+      const peers = Object.values(state.peers);
+
+      if (peers.length === 0) {
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      // Preserve empty div, rebuild peers
+      list.innerHTML = '';
+      list.appendChild(document.getElementById('emptyPeers') || (() => {
+        const d = document.createElement('div');
+        d.id = 'emptyPeers';
+        d.className = 'empty-peers';
+        d.style.display = 'none';
+        return d;
+      })());
+
+      peers.forEach(peer => {
+        const unread = peer.messages.filter(m => !m.mine && !m.read).length;
+        const color = getColor(peer.publicKey || peer.name);
+        const el = document.createElement('div');
+        el.className = 'peer-item' + (state.activePeer === peer.peerId ? ' active' : '');
+        el.onclick = () => selectPeer(peer.peerId);
+        el.innerHTML = `
+      <div class="peer-avatar" style="background:${color};color:#0a0a0f">${getInitials(peer.name)}</div>
+      <div class="peer-info">
+        <div class="peer-name">${peer.name}</div>
+        <div class="peer-status ${peer.online ? 'online' : 'offline'}">
+          <div class="dot"></div>
+          ${peer.online ? 'Online' : 'Offline'}
+          ${peer.btDevice ? ' · BT' : ''}
+        </div>
+      </div>
+      ${unread > 0 ? `<div class="peer-unread">${unread}</div>` : ''}
+    `;
+        list.appendChild(el);
+      });
+    }
+
+    function selectPeer(peerId) {
+      state.activePeer = peerId;
+      const peer = state.peers[peerId];
+      if (!peer) return;
+
+      // Mark messages read
+      peer.messages.forEach(m => m.read = true);
+
+      // Update header
+      const color = getColor(peer.publicKey || peer.name);
+      document.getElementById('chatAvatar').textContent = getInitials(peer.name);
+      document.getElementById('chatAvatar').style.background = color;
+      document.getElementById('chatPeerName').textContent = peer.name;
+      document.getElementById('chatPeerKey').textContent = peer.publicKey
+        ? peer.publicKey.slice(0, 24) + '…'
+        : 'No public key';
+
+      renderMessages(peerId);
+      showPanel('chatPanel');
+      renderPeersList();
+    }
+
+    // ─────────────────────────────────────────────
+    // MESSAGES
+    // ─────────────────────────────────────────────
+    function addSystemMessage(peerId, text) {
+      if (!state.peers[peerId]) return;
+      state.peers[peerId].messages.push({ type: 'system', text, ts: Date.now() });
+      if (state.activePeer === peerId) renderMessages(peerId);
+    }
+
+    function addMessage(peerId, text, mine = true, encrypted = true) {
+      if (!state.peers[peerId]) return;
+      state.peers[peerId].messages.push({ type: 'msg', text, mine, encrypted, ts: Date.now(), read: mine });
+      if (state.activePeer === peerId) renderMessages(peerId);
+      else renderPeersList();
+    }
+
+    function renderMessages(peerId) {
+      const container = document.getElementById('messages');
+      container.innerHTML = '';
+      const msgs = state.peers[peerId]?.messages || [];
+
+      msgs.forEach(msg => {
+        if (msg.type === 'system') {
+          const el = document.createElement('div');
+          el.className = 'system-message';
+          el.textContent = msg.text;
+          container.appendChild(el);
+          return;
+        }
+
+        const group = document.createElement('div');
+        group.className = 'message-group ' + (msg.mine ? 'mine' : 'theirs');
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.textContent = msg.text;
+        group.appendChild(bubble);
+
+        const meta = document.createElement('div');
+        meta.className = 'message-meta';
+        const time = new Date(msg.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        meta.innerHTML = `
+      ${time}
+      ${msg.encrypted ? `<span class="message-encrypted-badge">
+        <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a4 4 0 0 0-4 4v1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm2.5 5H5.5V5a2.5 2.5 0 0 1 5 0v1z"/></svg>
+        encrypted
+      </span>` : ''}
+    `;
+        group.appendChild(meta);
+        container.appendChild(group);
+      });
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text || !state.activePeer) return;
+      if (!state.identity) { toast('Generate an identity first', 'error'); return; }
+
+      const peer = state.peers[state.activePeer];
+      if (!peer) return;
+
+      input.value = '';
+      input.style.height = '';
+
+      let encrypted = false;
+      let sendText = text;
+
+      // Encrypt if we have the peer's public key
+      if (peer.publicKey && sodium) {
+        try {
+          const enc = await cryptoEncrypt(text, peer.publicKey, state.identity.privateKey);
+          encrypted = true;
+          sendText = JSON.stringify(enc);
+        } catch (e) {
+          toast('Encryption failed: ' + e.message, 'error');
+          return;
+        }
+      }
+
+      // Send via Bluetooth if connected
+      if (peer.btDevice && peer.online && state.btChar) {
+        try {
+          const encoder = new TextEncoder();
+          await state.btChar.writeValue(encoder.encode(sendText));
+          toast('Sent via Bluetooth ✓', 'success');
+        } catch (e) {
+          toast('BT send failed — queued', 'error');
+        }
+      }
+
+      addMessage(state.activePeer, text, true, encrypted);
+    }
+
+    function handleEnter(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    // ─────────────────────────────────────────────
+    // BLUETOOTH
+    // ─────────────────────────────────────────────
+
+    // MeshComm GATT Service UUID (custom)
+    const MESH_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+    const MESH_TX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // write
+    const MESH_RX_CHAR_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notify
+
+    async function startBluetoothScan() {
+      if (!state.identity) {
+        toast('Generate an identity first', 'error');
+        return;
+      }
+
+      if (!navigator.bluetooth) {
+        // Show simulated scan UI for environments without Web Bluetooth
+        openModal('btScanModal');
+        simulateBTScan();
+        return;
+      }
+
+      openModal('btScanModal');
+      updateBTStatus('scanning');
+
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [
+            { services: [MESH_SERVICE_UUID] },
+            { namePrefix: 'MeshComm' },
+          ],
+          optionalServices: [MESH_SERVICE_UUID],
+        });
+
+        document.getElementById('btScanStatus').textContent = `Found: ${device.name || device.id}`;
+        document.getElementById('btSpinnerWrap').innerHTML = '';
+        addBTDeviceToModal(device.name || 'Unknown Device', device.id, true);
+
+        await connectBluetoothDevice(device);
+
+      } catch (err) {
+        if (err.name === 'NotFoundError') {
+          document.getElementById('btScanStatus').textContent = 'No devices found.';
+        } else if (err.name === 'SecurityError') {
+          document.getElementById('btScanStatus').textContent = 'Bluetooth permission denied.';
+          toast('Bluetooth permission denied', 'error');
+        } else {
+          document.getElementById('btScanStatus').textContent = 'Error: ' + err.message;
+        }
+        document.getElementById('btSpinnerWrap').innerHTML = '';
+        updateBTStatus('off');
+      }
+    }
+
+    async function connectBluetoothDevice(device) {
+      toast(`Connecting to ${device.name || device.id}…`, 'info');
+
+      try {
+        device.addEventListener('gattserverdisconnected', onBTDisconnect);
+        const server = await device.gatt.connect();
+        state.btServer = server;
+        state.btDevice = device;
+
+        const service = await server.getPrimaryService(MESH_SERVICE_UUID);
+        const txChar = await service.getCharacteristic(MESH_TX_CHAR_UUID);
+        const rxChar = await service.getCharacteristic(MESH_RX_CHAR_UUID);
+
+        state.btChar = txChar;
+
+        // Subscribe to incoming messages
+        await rxChar.startNotifications();
+        rxChar.addEventListener('characteristicvaluechanged', onBTMessage);
+
+        updateBTStatus('connected', device.name || device.id);
+        closeModal('btScanModal');
+
+        // Add as peer or update existing
+        const peerId = addPeer(device.name || 'BT Device', '', true, device);
+        selectPeer(peerId);
+        toast(`Connected to ${device.name || device.id} ✓`, 'success');
+
+        // Exchange identity over BT
+        const handshake = JSON.stringify({ type: 'handshake', userId: state.identity.userId, publicKey: state.identity.publicKey });
+        const encoder = new TextEncoder();
+        await txChar.writeValue(encoder.encode(handshake));
+
+      } catch (err) {
+        toast('Connection failed: ' + err.message, 'error');
+        updateBTStatus('off');
+      }
+    }
+
+    function onBTMessage(event) {
+      const decoder = new TextDecoder();
+      const raw = decoder.decode(event.target.value);
+
+      try {
+        const data = JSON.parse(raw);
+
+        // Handshake — receive peer's public key
+        if (data.type === 'handshake') {
+          // Find the BT peer and update their public key
+          const btPeer = Object.values(state.peers).find(p => p.btDevice === state.btDevice);
+          if (btPeer) {
+            btPeer.publicKey = data.publicKey;
+            btPeer.name = data.userId.slice(0, 8);
+            renderPeersList();
+            if (state.activePeer === btPeer.peerId) {
+              document.getElementById('chatPeerKey').textContent = data.publicKey.slice(0, 24) + '…';
+            }
+            addSystemMessage(btPeer.peerId, 'Identity exchange complete — encryption active');
+          }
+          return;
+        }
+
+        // Encrypted message
+        if (data.cipher && data.nonce) {
+          const btPeer = Object.values(state.peers).find(p => p.btDevice === state.btDevice);
+          if (!btPeer || !state.identity) return;
+
+          // Decrypt asynchronously
+          if (btPeer.publicKey && sodium) {
+            cryptoDecrypt(data, btPeer.publicKey, state.identity.privateKey)
+              .then(plaintext => addMessage(btPeer.peerId, plaintext, false, true))
+              .catch(() => addMessage(btPeer.peerId, '[decryption failed]', false, false));
+          } else {
+            addMessage(btPeer.peerId, raw, false, false);
+          }
+          return;
+        }
+
+        // Plain text fallback
+        const btPeer = Object.values(state.peers).find(p => p.btDevice === state.btDevice);
+        if (btPeer) addMessage(btPeer.peerId, raw, false, false);
+
+      } catch (e) {
+        // Not JSON — plain text
+        const btPeer = Object.values(state.peers).find(p => p.btDevice === state.btDevice);
+        if (btPeer) addMessage(btPeer.peerId, raw, false, false);
+      }
+    }
+
+    function onBTDisconnect() {
+      updateBTStatus('off');
+      toast('Bluetooth device disconnected', 'error');
+      const btPeer = Object.values(state.peers).find(p => p.btDevice === state.btDevice);
+      if (btPeer) {
+        btPeer.online = false;
+        addSystemMessage(btPeer.peerId, 'Disconnected');
+        renderPeersList();
+      }
+      state.btDevice = null;
+      state.btServer = null;
+      state.btChar = null;
+    }
+
+    function disconnectPeer() {
+      const peer = state.peers[state.activePeer];
+      if (!peer) return;
+
+      if (peer.btDevice && peer.btDevice.gatt?.connected) {
+        peer.btDevice.gatt.disconnect();
+      }
+
+      peer.online = false;
+      addSystemMessage(state.activePeer, 'Disconnected');
+      renderPeersList();
+      toast(`Disconnected from ${peer.name}`, 'info');
+    }
+
+    // Simulate Bluetooth scan in environments without Web Bluetooth
+    function simulateBTScan() {
+      const mockDevices = [
+        { name: 'MeshComm-Alice', id: 'AA:BB:CC:DD:EE:01', rssi: -62 },
+        { name: 'MeshComm-Bob', id: 'AA:BB:CC:DD:EE:02', rssi: -74 },
+        { name: 'MeshComm-Node3', id: 'AA:BB:CC:DD:EE:03', rssi: -81 },
+      ];
+
+      document.getElementById('btScanStatus').textContent = 'Simulated scan (Web Bluetooth not available)';
+
+      let i = 0;
+      const timer = setInterval(() => {
+        if (i >= mockDevices.length) {
+          clearInterval(timer);
+          document.getElementById('btSpinnerWrap').innerHTML = '';
+          document.getElementById('btScanStatus').textContent = `Found ${mockDevices.length} peers`;
+          return;
+        }
+        addBTDeviceToModal(mockDevices[i].name, mockDevices[i].id, false, mockDevices[i].rssi);
+        i++;
+      }, 600);
+    }
+
+    function addBTDeviceToModal(name, id, real, rssi) {
+      const list = document.getElementById('btDeviceList');
+      const el = document.createElement('div');
+      el.className = 'bt-device';
+      el.innerHTML = `
+    <div class="bt-device-info">
+      <div class="bt-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41l5.59 5.59L5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg>
+      </div>
+      <div>
+        <div class="bt-name">${name}</div>
+        <div class="bt-rssi">${rssi ? rssi + ' dBm · ' : ''}${id.slice(0, 17)}</div>
+      </div>
+    </div>
+    <button class="btn btn-accent btn-sm" onclick="addSimPeer('${name}', '${id}')">Connect</button>
+  `;
+      list.appendChild(el);
+    }
+
+    function addSimPeer(name, id) {
+      closeModal('btScanModal');
+      const peerId = addPeer(name, '', true);
+      state.peers[peerId].btDevice = { id, simulated: true };
+      updateBTStatus('connected', name);
+      selectPeer(peerId);
+      addSystemMessage(peerId, 'Simulated Bluetooth connection established');
+      addSystemMessage(peerId, 'Note: Add a public key manually to enable encryption');
+      toast(`Connected to ${name} (simulated)`, 'success');
+    }
+
+    // ─────────────────────────────────────────────
+    // UI HELPERS
+    // ─────────────────────────────────────────────
+    function showPanel(id) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function openModal(id) {
+      if (id === 'qrModal') generateQR();
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    function updateBTStatus(state_, name = '') {
+      const el = document.getElementById('btStatus');
+      el.className = 'status-pill';
+      if (state_ === 'connected') {
+        el.classList.add('connected');
+        el.innerHTML = `<div class="dot"></div> ${name || 'Connected'}`;
+      } else if (state_ === 'scanning') {
+        el.classList.add('scanning');
+        el.innerHTML = `<div class="dot pulse"></div> Scanning…`;
+      } else {
+        el.innerHTML = `<div class="dot"></div> Bluetooth Off`;
+      }
+    }
+
+    function showPeerInfo() {
+      const peer = state.peers[state.activePeer];
+      if (!peer) return;
+      document.getElementById('peerInfoName').textContent = peer.name;
+      document.getElementById('peerInfoKey').textContent = peer.publicKey || 'Not provided';
+      document.getElementById('peerInfoConn').textContent = peer.btDevice
+        ? (peer.btDevice.simulated ? 'Simulated Bluetooth' : 'Bluetooth GATT')
+        : 'Manual / no transport';
+      openModal('peerInfoModal');
+    }
+
+    function generateQR() {
+      if (!state.identity) return;
+      const canvas = document.getElementById('qrCanvas');
+      canvas.innerHTML = '';
+      const data = JSON.stringify({ userId: state.identity.userId, publicKey: state.identity.publicKey });
+
+      // Use QRCode.js if available, otherwise draw text
+      if (window.QRCode) {
+        canvas.parentElement.innerHTML = '<canvas id="qrCanvas"></canvas>';
+        new QRCode(document.getElementById('qrCanvas'), {
+          text: data,
+          width: 160,
+          height: 160,
+          colorDark: '#0a0a0f',
+          colorLight: '#ffffff',
+        });
+      }
+    }
+
+    function toast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      const icons = { success: '✓', error: '✕', info: '◈' };
+      el.innerHTML = `<span>${icons[type] || '◈'}</span> ${message}`;
+      container.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 3000);
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('open');
+      });
+    });
+
+    // ─────────────────────────────────────────────
+    // INIT
+    // ─────────────────────────────────────────────
+    (async () => {
+      await initSodium();
+      toast('Crypto engine ready', 'success');
+
+      // Demo peers so the UI feels alive
+      const demo1 = addPeer('Alice (demo)', 'demo-key-alice-placeholder', false);
+      addMessage(demo1, 'Hey! Got MeshComm working?', false, false);
+      addMessage(demo1, 'Generate your identity then share QR codes to exchange keys.', false, false);
+    })();
+  </script>
+</body>
+
+</html>
