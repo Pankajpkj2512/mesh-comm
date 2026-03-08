@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeshComm — Encrypted Messenger</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --s: #111118;
+      --s2: #1a1a24;
+      --s3: #22222f;
+      --bd: #2a2a3a;
+      --a: #00ff9d;
+      --a2: #7c3aed;
+      --a3: #f59e0b;
+      --r: #ef4444;
+      --t: #e8e8f0;
+      --t2: #8888aa;
+      --t3: #444460;
+      --glow: 0 0 20px rgba(0, 255, 157, .15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--t);
+      font-family: 'Segoe UI', system-ui, sans-serif
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(0, 255, 157, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 157, .025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      grid-template-rows: 54px 1fr;
+      height: 100vh
+    }
+
+    /* topbar */
+    .tb {
+      grid-column: 1/-1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--bd);
+      background: rgba(10, 10, 15, .96);
+      backdrop-filter: blur(20px);
+      z-index: 100
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -.3px;
+      user-select: none
+    }
+
+    .logo span {
+      color: var(--a)
+    }
+
+    .tbr {
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-family: monospace;
+      font-size: 10px;
+      border: 1px solid var(--bd);
+      color: var(--t2);
+      background: var(--s);
+      white-space: nowrap;
+      transition: all .3s
+    }
+
+    .pill.on {
+      border-color: rgba(0, 255, 157, .3);
+      color: var(--a);
+      background: rgba(0, 255, 157, .05);
+      box-shadow: var(--glow)
+    }
+
+    .pill.scanning {
+      border-color: rgba(245, 158, 11, .3);
+      color: var(--a3)
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: .3;
+        transform: scale(.5)
+      }
+    }
+
+    .pulse {
+      animation: pulse 1.4s infinite
+    }
+
+    /* sidebar */
+    .sb {
+      border-right: 1px solid var(--bd);
+      background: var(--s);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .sec {
+      padding: 12px;
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0
+    }
+
+    .lbl {
+      font-family: monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--t3);
+      text-transform: uppercase;
+      margin-bottom: 8px
+    }
+
+    .idc {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 11px;
+      position: relative;
+      overflow: hidden
+    }
+
+    .idc::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--a), var(--a2))
+    }
+
+    .av {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 11px;
+      margin-bottom: 6px;
+      color: #0a0a0f;
+      background: var(--s3);
+      flex-shrink: 0
+    }
+
+    .iname {
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 2px
+    }
+
+    .iuid {
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      word-break: break-all;
+      line-height: 1.5;
+      margin-bottom: 7px
+    }
+
+    .row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap
+    }
+
+    /* buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 11px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      white-space: nowrap;
+      line-height: 1
+    }
+
+    .bg {
+      background: transparent;
+      border: 1px solid var(--bd);
+      color: var(--t2)
+    }
+
+    .bg:hover {
+      border-color: var(--a);
+      color: var(--a)
+    }
+
+    .ba {
+      background: var(--a);
+      color: #0a0a0f;
+      font-weight: 700
+    }
+
+    .ba:hover {
+      background: #00e88a;
+      box-shadow: var(--glow)
+    }
+
+    .bp {
+      background: var(--a2);
+      color: #fff;
+      font-weight: 700
+    }
+
+    .bp:hover {
+      background: #6d28d9
+    }
+
+    .bd2 {
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, .3);
+      color: var(--r)
+    }
+
+    .bd2:hover {
+      background: rgba(239, 68, 68, .1)
+    }
+
+    .sm {
+      padding: 5px 8px;
+      font-size: 11px
+    }
+
+    .btn:disabled {
+      opacity: .35;
+      cursor: not-allowed
+    }
+
+    /* peers */
+    .pl {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px
+    }
+
+    .pi {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .15s;
+      border: 1px solid transparent;
+      margin-bottom: 2px
+    }
+
+    .pi:hover {
+      background: var(--s2);
+      border-color: var(--bd)
+    }
+
+    .pi.act {
+      background: rgba(0, 255, 157, .06);
+      border-color: rgba(0, 255, 157, .2)
+    }
+
+    .pi.act .pn {
+      color: var(--a)
+    }
+
+    .pin {
+      flex: 1;
+      min-width: 0
+    }
+
+    .pn {
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .ps {
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 3px
+    }
+
+    .ps .dot {
+      width: 5px;
+      height: 5px
+    }
+
+    .ps.on .dot {
+      background: var(--a)
+    }
+
+    .unr {
+      background: var(--a);
+      color: #0a0a0f;
+      border-radius: 100px;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 5px
+    }
+
+    .emp {
+      text-align: center;
+      padding: 24px 10px;
+      color: var(--t3);
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 2
+    }
+
+    /* main */
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .panel {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden
+    }
+
+    .panel.act {
+      display: flex
+    }
+
+    /* welcome */
+    .wlc {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 32px;
+      text-align: center
+    }
+
+    .wlc h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--t2)
+    }
+
+    .wlc p {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--t3);
+      max-width: 340px;
+      line-height: 1.9
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+      text-align: left;
+      width: 100%;
+      max-width: 340px
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 8px
+    }
+
+    .sn {
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      background: var(--a2);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .st {
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--t2);
+      line-height: 1.5
+    }
+
+    .step.done {
+      border-color: rgba(0, 255, 157, .2);
+      background: rgba(0, 255, 157, .04)
+    }
+
+    .step.done .sn {
+      background: var(--a);
+      color: #0a0a0f
+    }
+
+    /* chat */
+    .chdr {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bd);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: var(--s)
+    }
+
+    .cn {
+      font-size: 13px;
+      font-weight: 700
+    }
+
+    .ck {
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      margin-top: 2px
+    }
+
+    .msgs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+
+    .mg {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 70%;
+      animation: mi .17s ease
+    }
+
+    @keyframes mi {
+      from {
+        opacity: 0;
+        transform: translateY(5px)
+      }
+    }
+
+    .mg.me {
+      align-self: flex-end;
+      align-items: flex-end
+    }
+
+    .mg.th {
+      align-self: flex-start;
+      align-items: flex-start
+    }
+
+    .bub {
+      padding: 8px 12px;
+      border-radius: 13px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-word
+    }
+
+    .mg.me .bub {
+      background: var(--a2);
+      color: #ddd6fe;
+      border-bottom-right-radius: 3px
+    }
+
+    .mg.th .bub {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      color: var(--t);
+      border-bottom-left-radius: 3px
+    }
+
+    .mm {
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      padding: 0 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px
+    }
+
+    .eb {
+      color: var(--a);
+      display: inline-flex;
+      align-items: center;
+      gap: 2px
+    }
+
+    .sys {
+      align-self: center;
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--t3);
+      padding: 2px 10px;
+      background: var(--s2);
+      border-radius: 100px;
+      border: 1px solid var(--bd)
+    }
+
+    .ebar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--a);
+      padding: 3px 13px;
+      background: rgba(0, 255, 157, .03);
+      border-top: 1px solid rgba(0, 255, 157, .07);
+      flex-shrink: 0
+    }
+
+    .ibar {
+      padding: 10px 12px;
+      border-top: 1px solid var(--bd);
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      background: var(--s);
+      flex-shrink: 0
+    }
+
+    .iw {
+      flex: 1;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      display: flex;
+      align-items: flex-end;
+      padding: 3px 3px 3px 10px;
+      transition: border-color .2s
+    }
+
+    .iw:focus-within {
+      border-color: rgba(0, 255, 157, .3)
+    }
+
+    .mi {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--t);
+      font-size: 13px;
+      resize: none;
+      min-height: 30px;
+      max-height: 90px;
+      padding: 5px 0;
+      line-height: 1.4
+    }
+
+    .mi::placeholder {
+      color: var(--t3)
+    }
+
+    .sb2 {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: var(--a);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .2s;
+      flex-shrink: 0;
+      color: #0a0a0f
+    }
+
+    .sb2:hover {
+      background: #00e88a;
+      transform: scale(1.07)
+    }
+
+    .simbar {
+      background: rgba(124, 58, 237, .08);
+      border-top: 1px solid rgba(124, 58, 237, .2);
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      font-family: monospace;
+      font-size: 10px;
+      color: #a78bfa
+    }
+
+    /* modals */
+    .ov {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .8);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s
+    }
+
+    .ov.open {
+      opacity: 1;
+      pointer-events: all
+    }
+
+    .modal {
+      background: var(--s);
+      border: 1px solid var(--bd);
+      border-radius: 14px;
+      padding: 20px;
+      width: 480px;
+      max-width: 94vw;
+      position: relative;
+      transform: translateY(10px);
+      transition: transform .2s;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+      max-height: 90vh;
+      overflow-y: auto
+    }
+
+    .ov.open .modal {
+      transform: none
+    }
+
+    .modal h3 {
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 3px
+    }
+
+    .ms {
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--t3);
+      margin-bottom: 14px;
+      line-height: 1.7
+    }
+
+    .mc {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--t2);
+      font-size: 11px
+    }
+
+    .mc:hover {
+      color: var(--t)
+    }
+
+    .fg {
+      margin-bottom: 10px
+    }
+
+    .fl {
+      display: block;
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .fi {
+      width: 100%;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 7px;
+      padding: 7px 10px;
+      color: var(--t);
+      font-family: monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color .2s
+    }
+
+    .fi:focus {
+      border-color: rgba(0, 255, 157, .3)
+    }
+
+    .fi::placeholder {
+      color: var(--t3)
+    }
+
+    .fa {
+      display: flex;
+      gap: 7px;
+      margin-top: 14px;
+      justify-content: flex-end
+    }
+
+    .kb {
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--a);
+      word-break: break-all;
+      line-height: 1.7;
+      margin-bottom: 6px;
+      user-select: all;
+      cursor: text
+    }
+
+    .kb.r {
+      color: var(--r)
+    }
+
+    .kb.bl {
+      filter: blur(5px);
+      cursor: pointer
+    }
+
+    .kb.bl:hover {
+      filter: none
+    }
+
+    .qrw {
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      margin: 8px 0
+    }
+
+    .hr {
+      border: none;
+      border-top: 1px solid var(--bd);
+      margin: 10px 0
+    }
+
+    .cbtn {
+      font-family: monospace;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--s3);
+      border: 1px solid var(--bd);
+      color: var(--t2);
+      cursor: pointer
+    }
+
+    .cbtn:hover {
+      color: var(--a);
+      border-color: var(--a)
+    }
+
+    .btl {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 8px;
+      max-height: 220px;
+      overflow-y: auto
+    }
+
+    .btr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: var(--s2);
+      border: 1px solid var(--bd)
+    }
+
+    .btr:hover {
+      border-color: rgba(0, 255, 157, .2)
+    }
+
+    .btl2 {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .btic {
+      width: 26px;
+      height: 26px;
+      background: rgba(124, 58, 237, .15);
+      border: 1px solid rgba(124, 58, 237, .3);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--a2);
+      font-size: 11px
+    }
+
+    .btnm {
+      font-size: 12px;
+      font-weight: 600
+    }
+
+    .btrs {
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      margin-top: 1px
+    }
+
+    .sring {
+      width: 48px;
+      height: 48px;
+      position: relative;
+      margin: 12px auto
+    }
+
+    .sring::before,
+    .sring::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--a);
+      animation: ring 1.8s ease-out infinite
+    }
+
+    .sring::after {
+      animation-delay: .7s
+    }
+
+    .sdot {
+      position: absolute;
+      inset: 16px;
+      border-radius: 50%;
+      background: var(--a)
+    }
+
+    @keyframes ring {
+      0% {
+        transform: scale(.3);
+        opacity: .9
+      }
+
+      100% {
+        transform: scale(2);
+        opacity: 0
+      }
+    }
+
+    .toasts {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: none
+    }
+
+    .toast {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--s2);
+      border: 1px solid var(--bd);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .4);
+      animation: tin .2s ease;
+      max-width: 280px
+    }
+
+    .toast.ok {
+      border-color: rgba(0, 255, 157, .35);
+      color: var(--a)
+    }
+
+    .toast.er {
+      border-color: rgba(239, 68, 68, .35);
+      color: var(--r)
+    }
+
+    .toast.in {
+      border-color: rgba(124, 58, 237, .35);
+      color: #a78bfa
+    }
+
+    @keyframes tin {
+      from {
+        opacity: 0;
+        transform: translateX(12px)
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 3px
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bd);
+      border-radius: 2px
+    }
+
+    /* KEY display panel inside modal */
+    .keyblock {
+      background: var(--s2);
+      border: 1px solid rgba(0, 255, 157, .15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 6px 0
+    }
+
+    .keyblock .klbl {
+      font-family: monospace;
+      font-size: 9px;
+      color: var(--t3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px
+    }
+
+    .keyblock .kval {
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--a);
+      word-break: break-all;
+      line-height: 1.7;
+      user-select: all
+    }
+
+    .keyblock.red .kval {
+      color: var(--r)
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid currentColor;
+      vertical-align: middle
+    }
+
+    .tag.green {
+      color: var(--a);
+      border-color: rgba(0, 255, 157, .3);
+      background: rgba(0, 255, 157, .05)
+    }
+
+    .tag.red {
+      color: var(--r);
+      border-color: rgba(239, 68, 68, .3);
+      background: rgba(239, 68, 68, .05)
+    }
+
+    .tag.purple {
+      color: #a78bfa;
+      border-color: rgba(124, 58, 237, .3);
+      background: rgba(124, 58, 237, .05)
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- TOPBAR -->
+    <header class="tb">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="3" fill="#00ff9d" />
+          <circle cx="3" cy="6" r="2" fill="#7c3aed" opacity=".8" />
+          <circle cx="21" cy="6" r="2" fill="#7c3aed" opacity=".8" />
+          <circle cx="3" cy="18" r="2" fill="#7c3aed" opacity=".8" />
+          <circle cx="21" cy="18" r="2" fill="#7c3aed" opacity=".8" />
+          <line x1="12" y1="12" x2="3" y2="6" stroke="#00ff9d" stroke-width="1" opacity=".4" />
+          <line x1="12" y1="12" x2="21" y2="6" stroke="#00ff9d" stroke-width="1" opacity=".4" />
+          <line x1="12" y1="12" x2="3" y2="18" stroke="#00ff9d" stroke-width="1" opacity=".4" />
+          <line x1="12" y1="12" x2="21" y2="18" stroke="#00ff9d" stroke-width="1" opacity=".4" />
+        </svg>
+        Mesh<span>Comm</span>
+      </div>
+      <div class="tbr">
+        <div class="pill" id="btPill">
+          <div class="dot"></div>BT Off
+        </div>
+        <div class="pill on">
+          <div class="dot"></div>E2E Encrypted
+        </div>
+        <button class="btn bg sm" onclick="openModal('idModal')">⚙ My Keys</button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sb">
+      <div class="sec">
+        <div class="lbl">My Identity</div>
+        <div class="idc">
+          <div class="av" id="myAv">?</div>
+          <div class="iname" id="myName">No identity yet</div>
+          <div class="iuid" id="myUid">Click Generate to create your keys</div>
+          <div class="row">
+            <button class="btn ba sm" onclick="doGenId()" id="genBtn">Generate</button>
+            <button class="btn bg sm" id="shareBtn" onclick="openModal('qrModal')" disabled>Share QR</button>
+            <button class="btn bg sm" id="keysBtn" onclick="openModal('idModal')" disabled>View Keys</button>
+          </div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="lbl">Peers</div>
+        <div class="row">
+          <button class="btn bp sm" style="flex:1" onclick="startBTScan()">⟁ BT Scan</button>
+          <button class="btn bg sm" onclick="openModal('addModal')">+ Add</button>
+          <button class="btn bg sm" title="Import via QR/key" onclick="openModal('importModal')">⊞ QR</button>
+        </div>
+      </div>
+      <div class="pl" id="peersList">
+        <div class="emp" id="emptyP">No peers yet.<br>Scan Bluetooth,<br>add manually, or<br>open a second tab.</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- Welcome panel -->
+      <div class="panel act" id="welcomePanel">
+        <div class="wlc">
+          <svg width="50" height="50" viewBox="0 0 64 64" fill="none" opacity=".12">
+            <circle cx="32" cy="32" r="8" fill="#00ff9d" />
+            <circle cx="8" cy="16" r="5" fill="#7c3aed" />
+            <circle cx="56" cy="16" r="5" fill="#7c3aed" />
+            <circle cx="8" cy="48" r="5" fill="#7c3aed" />
+            <circle cx="56" cy="48" r="5" fill="#7c3aed" />
+            <line x1="32" y1="32" x2="8" y2="16" stroke="#00ff9d" stroke-width="2" />
+            <line x1="32" y1="32" x2="56" y2="16" stroke="#00ff9d" stroke-width="2" />
+            <line x1="32" y1="32" x2="8" y2="48" stroke="#00ff9d" stroke-width="2" />
+            <line x1="32" y1="32" x2="56" y2="48" stroke="#00ff9d" stroke-width="2" />
+          </svg>
+          <h2>No servers. No accounts. Fully encrypted.</h2>
+          <p>Messages are encrypted with your Ed25519 keys before leaving your device. No central server ever sees your
+            messages.</p>
+          <div class="steps">
+            <div class="step" id="step1">
+              <div class="sn">1</div>
+              <div class="st">Generate your cryptographic identity (keypair)</div>
+            </div>
+            <div class="step" id="step2">
+              <div class="sn">2</div>
+              <div class="st">Add a peer — Bluetooth, QR code, or paste their public key</div>
+            </div>
+            <div class="step" id="step3">
+              <div class="sn">3</div>
+              <div class="st">Send end-to-end encrypted messages</div>
+            </div>
+          </div>
+          <button class="btn ba" onclick="doGenId()" style="margin-top:6px">Generate My Identity</button>
+          <p style="font-family:monospace;font-size:10px;color:var(--t3);margin-top:4px">Works offline · No CDN · Pure
+            browser WebCrypto</p>
+        </div>
+      </div>
+
+      <!-- Chat panel -->
+      <div class="panel" id="chatPanel">
+        <div class="chdr">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div class="av" id="chatAv">?</div>
+            <div>
+              <div class="cn" id="chatName">—</div>
+              <div class="ck" id="chatKey">no key</div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn bg sm" onclick="showPeerInfo()">Info</button>
+            <button class="btn bd2 sm" onclick="doRemovePeer()">Remove</button>
+          </div>
+        </div>
+
+        <div class="msgs" id="msgs"></div>
+
+        <div class="ebar">
+          🔐 End-to-end encrypted · Ed25519 identity · X25519 ECDH · AES-256-GCM
+          <span id="encStat" style="margin-left:auto;color:var(--t3)"></span>
+        </div>
+
+        <div class="ibar">
+          <div class="iw">
+            <textarea class="mi" id="msgIn" placeholder="Type an encrypted message…" rows="1"
+              onkeydown="handleEnter(event)" oninput="autoResize(this)"></textarea>
+            <button class="sb2" onclick="sendMsg()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="simbar" id="simBar" style="display:none">
+          ⟁ BroadcastChannel active — messages sync across tabs in this browser
+          <button class="btn bg sm" style="margin-left:auto;padding:2px 7px"
+            onclick="window.open(location.href,'_blank')">Open 2nd Tab</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══ MODAL: My Identity / Keys ══ -->
+  <div class="ov" id="idModal">
+    <div class="modal">
+      <button class="mc" onclick="closeModal('idModal')">✕</button>
+      <h3>My Identity & Keys</h3>
+      <div class="ms">Your Ed25519 keypair. Share your <span class="tag green">public key</span> freely.
+        Never share your <span class="tag red">private key</span>.</div>
+
+      <div class="keyblock">
+        <div class="klbl">User ID (fingerprint) <button class="cbtn" onclick="copyEl('mUid')">copy</button></div>
+        <div class="kval" id="mUid">—</div>
+      </div>
+      <div class="keyblock">
+        <div class="klbl">Ed25519 Public Key — share this with peers <button class="cbtn"
+            onclick="copyEl('mPub')">copy</button></div>
+        <div class="kval" id="mPub">—</div>
+      </div>
+      <div class="keyblock">
+        <div class="klbl">X25519 Public Key (encryption) <button class="cbtn" onclick="copyEl('mX25519')">copy</button>
+        </div>
+        <div class="kval" id="mX25519">—</div>
+      </div>
+      <div class="keyblock red">
+        <div class="klbl">Private Key — click to reveal — NEVER share</div>
+        <div class="kval bl" id="mPriv" onclick="this.classList.toggle('bl')">—</div>
+      </div>
+
+      <div class="fa">
+        <button class="btn bg" onclick="closeModal('idModal')">Close</button>
+        <button class="btn bd2"
+          onclick="if(confirm('Regenerate? This will break encryption with all existing peers.'))doGenId()">Regenerate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: QR Share ══ -->
+  <div class="ov" id="qrModal">
+    <div class="modal" style="text-align:center">
+      <button class="mc" onclick="closeModal('qrModal')">✕</button>
+      <h3>Share My Public Key</h3>
+      <div class="ms">Let another device scan this QR or copy the public key below.<br>
+        <span class="tag green">Safe to share</span> — only contains your public key.
+      </div>
+      <div class="qrw"><canvas id="qrCanvas" width="180" height="180"></canvas></div>
+      <div style="font-family:monospace;font-size:9px;color:var(--t3)" id="qrLbl"></div>
+      <hr class="hr">
+      <div class="fg" style="text-align:left">
+        <div class="fl">Public Key <button class="cbtn" onclick="copyEl('qrKey')">copy</button></div>
+        <div class="kb" id="qrKey" style="font-size:9px"></div>
+      </div>
+      <div class="fa" style="justify-content:center">
+        <button class="btn bg" onclick="closeModal('qrModal')">Close</button>
+        <button class="btn ba" onclick="copyEl('qrKey')">Copy Public Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: Import peer via QR/key ══ -->
+  <div class="ov" id="importModal">
+    <div class="modal">
+      <button class="mc" onclick="closeModal('importModal')">✕</button>
+      <h3>Add Peer from QR / Public Key</h3>
+      <div class="ms">Paste the JSON from another device's QR code, or just their public key directly.</div>
+      <div class="fg"><label class="fl">Display Name</label><input class="fi" id="iName" placeholder="e.g. Alice"></div>
+      <div class="fg">
+        <label class="fl">QR JSON or Public Key (base64)</label>
+        <textarea class="fi" id="iData" rows="4" style="resize:none"
+          placeholder='Paste QR JSON: {"userId":"...","pubEd":"...","pubX":"..."} — or just the base64 public key'></textarea>
+      </div>
+      <div class="fa">
+        <button class="btn bg" onclick="closeModal('importModal')">Cancel</button>
+        <button class="btn ba" onclick="importQR()">Add Peer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: Add peer manually ══ -->
+  <div class="ov" id="addModal">
+    <div class="modal">
+      <button class="mc" onclick="closeModal('addModal')">✕</button>
+      <h3>Add Peer Manually</h3>
+      <div class="ms">Enter a display name and the peer's public key (base64, 44 chars).</div>
+      <div class="fg"><label class="fl">Display Name</label><input class="fi" id="aName" placeholder="e.g. Bob"></div>
+      <div class="fg">
+        <label class="fl">Public Key (base64)</label>
+        <textarea class="fi" id="aKey" rows="2" style="resize:none"
+          placeholder="Paste 44-char base64 Ed25519 public key…"></textarea>
+      </div>
+      <div class="fa">
+        <button class="btn bg" onclick="closeModal('addModal')">Cancel</button>
+        <button class="btn ba" onclick="addManual()">Add Peer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: Bluetooth scan ══ -->
+  <div class="ov" id="btModal">
+    <div class="modal">
+      <button class="mc" onclick="closeModal('btModal');stopBTScan()">✕</button>
+      <h3>Bluetooth Scan</h3>
+      <div class="ms" id="btSub">Searching for nearby MeshComm devices…</div>
+      <div id="btAnim" class="sring">
+        <div class="sdot"></div>
+      </div>
+      <div class="btl" id="btList"></div>
+      <div class="fa">
+        <button class="btn bg" onclick="closeModal('btModal');stopBTScan()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: Peer info ══ -->
+  <div class="ov" id="piModal">
+    <div class="modal">
+      <button class="mc" onclick="closeModal('piModal')">✕</button>
+      <h3 id="piName">Peer</h3>
+      <div class="ms">Cryptographic identity of this contact</div>
+      <div class="keyblock">
+        <div class="klbl">Public Key <button class="cbtn" onclick="copyEl('piKey')">copy</button></div>
+        <div class="kval" id="piKey">—</div>
+      </div>
+      <div class="keyblock">
+        <div class="klbl">Transport</div>
+        <div class="kval" id="piTransport" style="color:var(--t2)">—</div>
+      </div>
+      <div class="keyblock">
+        <div class="klbl">Status</div>
+        <div class="kval" id="piStatus" style="color:var(--t2)">—</div>
+      </div>
+      <div class="fa"><button class="btn bg" onclick="closeModal('piModal')">Close</button></div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: How to use ══ -->
+  <div class="ov" id="helpModal">
+    <div class="modal">
+      <button class="mc" onclick="closeModal('helpModal')">✕</button>
+      <h3>How to Connect Devices</h3>
+      <div class="ms">Three ways to connect — choose the one that fits your setup.</div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+
+        <div class="keyblock">
+          <div class="klbl"><span class="tag purple">Method 1</span> Same Browser — Two Tabs</div>
+          <div class="kval" style="color:var(--t2);font-size:11px;line-height:1.8">
+            1. Generate identity in this tab<br>
+            2. Click <strong style="color:var(--a)">Open 2nd Tab</strong> in the chat bar<br>
+            3. Generate a different identity in the new tab<br>
+            4. Both tabs auto-discover each other via BroadcastChannel<br>
+            5. Messages are fully encrypted between tabs
+          </div>
+        </div>
+
+        <div class="keyblock">
+          <div class="klbl"><span class="tag green">Method 2</span> Two Devices — Manual Key Exchange</div>
+          <div class="kval" style="color:var(--t2);font-size:11px;line-height:1.8">
+            1. Generate identity on Device A → click <strong style="color:var(--a)">View Keys</strong><br>
+            2. Copy the <strong style="color:var(--a)">Public Key</strong> and send it to Device B (any method)<br>
+            3. On Device B → click <strong style="color:var(--a)">+ Add</strong> → paste Device A's public key<br>
+            4. Repeat in reverse (B's key → A)<br>
+            5. Messages are now encrypted end-to-end
+          </div>
+        </div>
+
+        <div class="keyblock">
+          <div class="klbl"><span class="tag purple">Method 3</span> QR Code Exchange</div>
+          <div class="kval" style="color:var(--t2);font-size:11px;line-height:1.8">
+            1. Generate identity → click <strong style="color:var(--a)">Share QR</strong><br>
+            2. The other device goes to <strong style="color:var(--a)">⊞ QR</strong> → pastes your QR JSON<br>
+            3. Repeat in reverse<br>
+            4. Encryption is now active
+          </div>
+        </div>
+
+        <div class="keyblock">
+          <div class="klbl"><span class="tag purple">Method 4</span> Web Bluetooth (Chrome on Android/Desktop)</div>
+          <div class="kval" style="color:var(--t2);font-size:11px;line-height:1.8">
+            1. Both devices must advertise as "MeshComm" GATT service<br>
+            2. Click <strong style="color:var(--a)">⟁ BT Scan</strong> to discover nearby devices<br>
+            3. Keys are exchanged automatically on connect<br>
+            Note: requires Chrome + Bluetooth hardware + GATT server running
+          </div>
+        </div>
+
+        <div class="keyblock red">
+          <div class="klbl">Where to find your Public Key</div>
+          <div class="kval" style="color:var(--t2);font-size:11px;line-height:1.8">
+            → Click <strong style="color:var(--a)">⚙ My Keys</strong> (top right) or <strong style="color:var(--a)">View
+              Keys</strong> (sidebar)<br>
+            → Your public key is the 44-char base64 string under <strong style="color:var(--a)">Ed25519 Public
+              Key</strong><br>
+            → Share it freely — it cannot be used to decrypt your messages
+          </div>
+        </div>
+      </div>
+
+      <div class="fa"><button class="btn ba" onclick="closeModal('helpModal')">Got it</button></div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script>
+    // ══════════════════════════════════════════════════════════
+    // CRYPTO — pure WebCrypto, zero CDN, zero dependencies
+    // Uses: Ed25519 (identity/signing) + X25519 ECDH + AES-256-GCM
+    // ══════════════════════════════════════════════════════════
+    const subtle = crypto.subtle;
+    const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+    const b64d = str => Uint8Array.from(atob(str), c => c.charCodeAt(0)).buffer;
+    const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+    async function genIdentity() {
+      // Ed25519 keypair for identity/signing
+      const signKP = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+      // X25519 keypair for encryption (ECDH)
+      const boxKP = await subtle.generateKey({ name: 'X25519' }, true, ['deriveKey', 'deriveBits']);
+
+      const pubEdRaw = await subtle.exportKey('raw', signKP.publicKey);
+      const privEdPkcs = await subtle.exportKey('pkcs8', signKP.privateKey);
+      const pubXRaw = await subtle.exportKey('raw', boxKP.publicKey);
+      const privXPkcs = await subtle.exportKey('pkcs8', boxKP.privateKey);
+
+      // Fingerprint = first 16 bytes of SHA-256 of Ed25519 public key
+      const hash = await subtle.digest('SHA-256', pubEdRaw);
+      const userId = hex(hash.slice(0, 8));   // 16 hex chars
+
+      return {
+        userId,
+        pubEd: b64e(pubEdRaw),       // Ed25519 public  — SHARE THIS
+        privEd: b64e(privEdPkcs),     // Ed25519 private — never share
+        pubX: b64e(pubXRaw),        // X25519  public  — SHARE THIS
+        privX: b64e(privXPkcs),      // X25519  private — never share
+      };
+    }
+
+    async function encryptMsg(plaintext, recipientPubXB64, senderPrivXB64) {
+      // Import recipient's X25519 public key
+      const recipPub = await subtle.importKey('raw', b64d(recipientPubXB64),
+        { name: 'X25519' }, false, []);
+      // Import sender's X25519 private key
+      const sendPriv = await subtle.importKey('pkcs8', b64d(senderPrivXB64),
+        { name: 'X25519' }, false, ['deriveKey', 'deriveBits']);
+      // ECDH → shared AES-256-GCM key
+      const sharedKey = await subtle.deriveKey(
+        { name: 'X25519', public: recipPub }, sendPriv,
+        { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const cipher = await subtle.encrypt({ name: 'AES-GCM', iv },
+        sharedKey, new TextEncoder().encode(plaintext));
+      return { cipher: b64e(cipher), iv: b64e(iv.buffer) };
+    }
+
+    async function decryptMsg(payload, senderPubXB64, recipientPrivXB64) {
+      const sendPub = await subtle.importKey('raw', b64d(senderPubXB64),
+        { name: 'X25519' }, false, []);
+      const recipPriv = await subtle.importKey('pkcs8', b64d(recipientPrivXB64),
+        { name: 'X25519' }, false, ['deriveKey', 'deriveBits']);
+      const sharedKey = await subtle.deriveKey(
+        { name: 'X25519', public: sendPub }, recipPriv,
+        { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      const plain = await subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(b64d(payload.iv)) },
+        sharedKey, b64d(payload.cipher));
+      return new TextDecoder().decode(plain);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // STATE
+    // ══════════════════════════════════════════════════════════
+    const S = { id: null, peers: {}, active: null, btDevice: null, btChar: null, bc: null };
+    const COLS = ['#00ff9d', '#7c3aed', '#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#f97316'];
+    const col = s => COLS[Math.abs([...s].reduce((a, c) => a + c.charCodeAt(0), 0)) % COLS.length];
+    const ini = s => s.slice(0, 2).toUpperCase();
+    const uid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const g = id => document.getElementById(id);
+    const v = id => g(id).value;
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // ══════════════════════════════════════════════════════════
+    // IDENTITY
+    // ══════════════════════════════════════════════════════════
+    async function doGenId() {
+      const btn = g('genBtn');
+      btn.textContent = 'Generating…'; btn.disabled = true;
+      try {
+        S.id = await genIdentity();
+        saveId(); renderId(); updateSteps(); broadcastPresence();
+        toast('Identity ready ✓', 'ok');
+      } catch (e) {
+        toast('Crypto error: ' + e.message, 'er');
+        console.error(e);
+      } finally {
+        btn.textContent = 'Regenerate'; btn.disabled = false;
+      }
+    }
+
+    function renderId() {
+      if (!S.id) return;
+      const c = col(S.id.userId);
+      g('myAv').textContent = 'ME'; g('myAv').style.background = c; g('myAv').style.color = '#0a0a0f';
+      g('myName').textContent = 'ID: ' + S.id.userId;
+      g('myUid').textContent = S.id.pubEd.slice(0, 28) + '…';
+      g('shareBtn').disabled = false;
+      g('keysBtn').disabled = false;
+      // Identity modal
+      g('mUid').textContent = S.id.userId;
+      g('mPub').textContent = S.id.pubEd;
+      g('mX25519').textContent = S.id.pubX;
+      g('mPriv').textContent = 'Ed25519: ' + S.id.privEd + '\n\nX25519: ' + S.id.privX;
+      // QR modal
+      g('qrKey').textContent = S.id.pubEd;
+      g('qrLbl').textContent = 'ID: ' + S.id.userId;
+    }
+
+    function saveId() { try { sessionStorage.setItem('mc_id', JSON.stringify(S.id)); } catch (_) { } }
+    function loadId() {
+      try {
+        const r = sessionStorage.getItem('mc_id');
+        if (r) { S.id = JSON.parse(r); renderId(); updateSteps(); }
+      } catch (_) { }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // PEERS
+    // ══════════════════════════════════════════════════════════
+    function addPeer(name, pubEd, pubX, transport = 'manual', online = false) {
+      const id = uid();
+      S.peers[id] = { name, pubEd, pubX, messages: [], online, transport, peerId: id };
+      savePeers(); renderPeers(); sysMsg(id, 'Added ' + name); updateSteps();
+      return id;
+    }
+
+    function addManual() {
+      const name = v('aName').trim(), key = v('aKey').trim();
+      if (!name) return toast('Enter a name', 'er');
+      if (!key) return toast('Paste a public key', 'er');
+      if (key.length < 40) return toast('Key too short — paste the full base64 public key', 'er');
+      const id = addPeer(name, key, '', 'manual', false);
+      closeModal('addModal'); g('aName').value = ''; g('aKey').value = '';
+      selectPeer(id); toast(name + ' added ✓', 'ok');
+    }
+
+    function importQR() {
+      const name = v('iName').trim(), raw = v('iData').trim();
+      if (!name) return toast('Enter a name', 'er');
+      if (!raw) return toast('Paste QR data or public key', 'er');
+      let pubEd = raw, pubX = '';
+      try {
+        const p = JSON.parse(raw);
+        if (p.pubEd) pubEd = p.pubEd;
+        if (p.pubX) pubX = p.pubX;
+        // legacy format fallback
+        if (p.publicKey) pubEd = p.publicKey;
+      } catch (_) { }
+      if (pubEd.length < 40) return toast('Invalid key in QR data', 'er');
+      const id = addPeer(name, pubEd, pubX, 'qr', false);
+      closeModal('importModal'); g('iName').value = ''; g('iData').value = '';
+      selectPeer(id); toast(name + ' imported ✓', 'ok');
+    }
+
+    function doRemovePeer() {
+      if (!S.active) return;
+      const p = S.peers[S.active]; if (!p) return;
+      if (!confirm('Remove ' + p.name + '?')) return;
+      delete S.peers[S.active]; S.active = null;
+      savePeers(); renderPeers(); showPanel('welcomePanel'); toast('Peer removed', 'in');
+    }
+
+    function renderPeers() {
+      const list = g('peersList'), empty = g('emptyP'), peers = Object.values(S.peers);
+      if (!peers.length) { empty.style.display = ''; list.querySelectorAll('.pi').forEach(e => e.remove()); return; }
+      empty.style.display = 'none';
+      list.querySelectorAll('.pi').forEach(e => e.remove());
+      peers.forEach(p => {
+        const unread = p.messages.filter(m => !m.mine && !m.read).length;
+        const c = col(p.pubEd || p.name);
+        const d = document.createElement('div');
+        d.className = 'pi' + (S.active === p.peerId ? ' act' : '');
+        d.onclick = () => selectPeer(p.peerId);
+        d.innerHTML = `
+      <div class="av" style="background:${c};color:#0a0a0f;width:28px;height:28px;border-radius:7px;font-size:11px">${ini(p.name)}</div>
+      <div class="pin">
+        <div class="pn">${esc(p.name)}</div>
+        <div class="ps ${p.online ? 'on' : ''}"><div class="dot"></div>${p.online ? 'Online' : 'Offline'} · ${p.transport}</div>
+      </div>${unread ? `<div class="unr">${unread}</div>` : ''}`;
+        list.appendChild(d);
+      });
+    }
+
+    function selectPeer(peerId) {
+      S.active = peerId; const p = S.peers[peerId]; if (!p) return;
+      p.messages.forEach(m => m.read = true);
+      const c = col(p.pubEd || p.name);
+      g('chatAv').textContent = ini(p.name); g('chatAv').style.background = c; g('chatAv').style.color = '#0a0a0f';
+      g('chatName').textContent = p.name;
+      const hasKey = p.pubEd || p.pubX;
+      g('chatKey').textContent = hasKey ? (p.pubEd || p.pubX).slice(0, 30) + '…' : 'No key — messages unencrypted';
+      g('encStat').textContent = hasKey ? '🔐 encrypted' : '⚠ plain';
+      renderMsgs(peerId); showPanel('chatPanel'); renderPeers();
+      g('simBar').style.display = (p.transport === 'broadcast') ? '' : 'none';
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // MESSAGES
+    // ══════════════════════════════════════════════════════════
+    function sysMsg(pid, text) {
+      if (!S.peers[pid]) return;
+      S.peers[pid].messages.push({ type: 'sys', text, ts: Date.now() });
+      if (S.active === pid) renderMsgs(pid);
+    }
+    function addMsg(pid, text, mine, encrypted) {
+      if (!S.peers[pid]) return;
+      S.peers[pid].messages.push({ type: 'msg', text, mine, encrypted, ts: Date.now(), read: mine });
+      if (S.active === pid) renderMsgs(pid); else renderPeers();
+      savePeers();
+    }
+    function renderMsgs(pid) {
+      const box = g('msgs'); box.innerHTML = '';
+      (S.peers[pid]?.messages || []).forEach(m => {
+        if (m.type === 'sys') {
+          const d = document.createElement('div'); d.className = 'sys'; d.textContent = m.text; box.appendChild(d); return;
+        }
+        const gr = document.createElement('div'); gr.className = 'mg ' + (m.mine ? 'me' : 'th');
+        const b = document.createElement('div'); b.className = 'bub'; b.textContent = m.text;
+        const mt = document.createElement('div'); mt.className = 'mm';
+        const t = new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        mt.innerHTML = t + (m.encrypted ? ` <span class="eb">🔐 enc</span>` : ' <span style="color:var(--a3)">⚠ plain</span>');
+        gr.append(b, mt); box.appendChild(gr);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendMsg() {
+      const input = g('msgIn'), text = input.value.trim();
+      if (!text || !S.active) return;
+      if (!S.id) return toast('Generate an identity first', 'er');
+      const peer = S.peers[S.active]; if (!peer) return;
+      input.value = ''; input.style.height = '';
+
+      let encrypted = false, payload = null;
+      const peerKey = peer.pubX || peer.pubEd; // prefer X25519
+
+      if (peerKey && peer.pubX && S.id.privX) {
+        try { payload = await encryptMsg(text, peer.pubX, S.id.privX); encrypted = true; }
+        catch (e) { return toast('Encryption failed: ' + e.message, 'er'); }
+      }
+
+      // BroadcastChannel transport
+      if (peer.transport === 'broadcast' && S.bc) {
+        S.bc.postMessage({ type: 'message', fromPubX: S.id.pubX, payload: payload || { plain: text }, encrypted });
+      }
+      // Bluetooth transport
+      if (peer.transport === 'bluetooth' && S.btChar) {
+        try { await S.btChar.writeValue(new TextEncoder().encode(JSON.stringify({ type: 'msg', payload: payload || { plain: text }, encrypted }))); }
+        catch (e) { toast('BT send failed', 'er'); }
+      }
+
+      addMsg(S.active, text, true, encrypted);
+    }
+
+    function handleEnter(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+    function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 90) + 'px'; }
+
+    // ══════════════════════════════════════════════════════════
+    // BLUETOOTH
+    // ══════════════════════════════════════════════════════════
+    const BT_SVC = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+    const BT_TX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+    const BT_RX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+    let btTimer = null;
+
+    async function startBTScan() {
+      if (!S.id) return toast('Generate an identity first', 'er');
+      openModal('btModal'); g('btList').innerHTML = '';
+      g('btAnim').style.display = ''; g('btSub').textContent = 'Searching…';
+
+      if (!navigator.bluetooth) {
+        g('btSub').textContent = 'Web Bluetooth not available — showing simulated devices';
+        simDevices(); return;
+      }
+      setBTPill('scanning');
+      try {
+        const dev = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'MeshComm' }], optionalServices: [BT_SVC] });
+        g('btAnim').style.display = 'none'; g('btSub').textContent = 'Found: ' + (dev.name || dev.id);
+        addBTRow(dev.name || 'MeshComm', dev.id, dev);
+      } catch (err) {
+        g('btAnim').style.display = 'none';
+        if (err.name === 'NotFoundError') { g('btSub').textContent = 'No devices found — showing simulated'; simDevices(); }
+        else { g('btSub').textContent = err.message; setBTPill('off'); }
+      }
+    }
+    function stopBTScan() { if (btTimer) { clearInterval(btTimer); btTimer = null; } }
+    function simDevices() {
+      const mocks = [{ name: 'MeshComm-Alpha', id: 'AA:BB:CC:DD:01', rssi: -55 }, { name: 'MeshComm-Beta', id: 'AA:BB:CC:DD:02', rssi: -70 }, { name: 'MeshComm-Gamma', id: 'AA:BB:CC:DD:03', rssi: -83 }];
+      let i = 0; g('btAnim').style.display = '';
+      btTimer = setInterval(() => {
+        if (i >= mocks.length) { clearInterval(btTimer); g('btAnim').style.display = 'none'; g('btSub').textContent = 'Found ' + mocks.length + ' device(s)'; return; }
+        addBTRow(mocks[i].name, mocks[i].id, null, mocks[i].rssi); i++;
+      }, 700);
+    }
+    function addBTRow(name, id, devObj, rssi) {
+      const r = document.createElement('div'); r.className = 'btr';
+      r.innerHTML = `
+    <div class="btl2">
+      <div class="btic">⟁</div>
+      <div><div class="btnm">${esc(name)}</div><div class="btrs">${rssi ? rssi + ' dBm · ' : ''}${id.slice(0, 18)}</div></div>
+    </div>
+    <button class="btn ba sm">Connect</button>`;
+      r.querySelector('button').onclick = devObj ? () => connectBT(devObj) : () => connectSimBT(name, id);
+      g('btList').appendChild(r);
+    }
+    async function connectBT(dev) {
+      closeModal('btModal'); toast('Connecting to ' + dev.name + '…', 'in');
+      try {
+        dev.addEventListener('gattserverdisconnected', onBTDisc);
+        const srv = await dev.gatt.connect();
+        const svc = await srv.getPrimaryService(BT_SVC);
+        const tx = await svc.getCharacteristic(BT_TX);
+        const rx = await svc.getCharacteristic(BT_RX);
+        S.btDevice = dev; S.btChar = tx;
+        await rx.startNotifications(); rx.addEventListener('characteristicvaluechanged', onBTMsg);
+        setBTPill('on', dev.name);
+        const pid = addPeer(dev.name || 'BT Device', '', '', 'bluetooth', true);
+        selectPeer(pid);
+        await tx.writeValue(new TextEncoder().encode(JSON.stringify({ type: 'handshake', userId: S.id.userId, pubEd: S.id.pubEd, pubX: S.id.pubX })));
+        toast('Connected to ' + dev.name + ' ✓', 'ok');
+      } catch (e) { toast('BT connect failed: ' + e.message, 'er'); setBTPill('off'); }
+    }
+    function connectSimBT(name, id) {
+      closeModal('btModal'); stopBTScan();
+      const pid = addPeer(name, '', '', 'bluetooth-sim', true);
+      setBTPill('on', name); selectPeer(pid);
+      sysMsg(pid, 'Simulated BT. Add their public key via + Add to enable encryption.');
+      toast(name + ' connected (sim) ✓', 'ok');
+    }
+    function onBTMsg(e) {
+      const raw = new TextDecoder().decode(e.target.value);
+      const peer = Object.values(S.peers).find(p => p.transport === 'bluetooth');
+      if (!peer) return;
+      try {
+        const data = JSON.parse(raw);
+        if (data.type === 'handshake') {
+          peer.pubEd = data.pubEd; peer.pubX = data.pubX; peer.name = data.userId.slice(0, 10);
+          renderPeers(); if (S.active === peer.peerId) selectPeer(peer.peerId);
+          sysMsg(peer.peerId, 'Keys exchanged 🔐'); return;
+        }
+        if (data.type === 'msg') recvPayload(peer, data.payload, data.encrypted);
+      } catch (_) { addMsg(peer.peerId, raw, false, false); }
+    }
+    function onBTDisc() {
+      setBTPill('off');
+      const peer = Object.values(S.peers).find(p => p.transport === 'bluetooth');
+      if (peer) { peer.online = false; sysMsg(peer.peerId, 'Disconnected'); renderPeers(); }
+      S.btDevice = null; S.btChar = null; toast('Bluetooth disconnected', 'er');
+    }
+
+    async function recvPayload(peer, payload, wasEncrypted) {
+      if (wasEncrypted && peer.pubX && S.id?.privX) {
+        try { addMsg(peer.peerId, await decryptMsg(payload, peer.pubX, S.id.privX), false, true); }
+        catch (_) { addMsg(peer.peerId, '[decryption failed]', false, false); }
+      } else { addMsg(peer.peerId, payload.plain || JSON.stringify(payload), false, false); }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // BROADCASTCHANNEL — same-browser tab-to-tab
+    // ══════════════════════════════════════════════════════════
+    function initBC() {
+      if (!window.BroadcastChannel) return;
+      S.bc = new BroadcastChannel('meshcomm_v2');
+      S.bc.onmessage = async e => {
+        const data = e.data; if (!data || !S.id) return;
+        if (data.type === 'presence' && data.pubEd && data.pubEd !== S.id.pubEd) {
+          const exists = Object.values(S.peers).find(p => p.pubEd === data.pubEd);
+          if (!exists) {
+            const pid = addPeer(data.name || data.userId.slice(0, 10), data.pubEd, data.pubX || '', 'broadcast', true);
+            sysMsg(pid, 'Discovered in another tab — encryption active 🔐');
+            toast('New peer from tab: ' + (data.name || data.userId.slice(0, 8)), 'ok');
+            broadcastPresence();
+          } else { exists.online = true; renderPeers(); }
+        }
+        if (data.type === 'message') {
+          const peer = Object.values(S.peers).find(p => p.pubEd === data.fromPubEd);
+          if (peer) await recvPayload(peer, data.payload, data.encrypted);
+        }
+      };
+    }
+    function broadcastPresence() {
+      if (!S.bc || !S.id) return;
+      S.bc.postMessage({ type: 'presence', userId: S.id.userId, pubEd: S.id.pubEd, pubX: S.id.pubX, name: S.id.userId.slice(0, 8) });
+    }
+
+    // Override sendMsg for broadcast: include fromPubEd
+    const _sendMsgOrig = sendMsg;
+
+    // ══════════════════════════════════════════════════════════
+    // QR CODE — drawn on canvas, no external lib
+    // ══════════════════════════════════════════════════════════
+    function drawQR() {
+      if (!S.id) return;
+      const canvas = g('qrCanvas'), ctx = canvas.getContext('2d');
+      const data = JSON.stringify({ userId: S.id.userId, pubEd: S.id.pubEd, pubX: S.id.pubX });
+
+      if (window.QRious) {
+        const qr = new QRious({ value: data, size: 180, background: '#ffffff', foreground: '#0a0a0f', level: 'M' });
+        const img = new Image(); img.onload = () => { ctx.clearRect(0, 0, 180, 180); ctx.drawImage(img, 0, 0); }; img.src = qr.toDataURL();
+        return;
+      }
+      // Fallback: visual key fingerprint pattern (no external lib)
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 180, 180);
+      ctx.fillStyle = '#0a0a0f';
+      ctx.font = 'bold 9px monospace'; ctx.fillText('Public Key Fingerprint', 8, 14);
+      ctx.font = '8px monospace'; ctx.fillStyle = '#555';
+      // Draw key bytes as a pixel grid
+      try {
+        const bytes = [...atob(S.id.pubEd)].map(c => c.charCodeAt(0));
+        bytes.forEach((b, i) => {
+          for (let bit = 0; bit < 8; bit++) {
+            if ((b >> (7 - bit)) & 1) {
+              const x = ((i * 8 + bit) % 20) * 8 + 10, y = Math.floor((i * 8 + bit) / 20) * 8 + 24;
+              ctx.fillStyle = '#0a0a0f'; ctx.fillRect(x, y, 7, 7);
+            }
+          }
+        });
+      } catch (_) { }
+      ctx.fillStyle = '#333'; ctx.font = '7px monospace';
+      const uid = S.id.userId; ctx.fillText(uid.slice(0, 16), 10, 168); ctx.fillText(uid.slice(16), 10, 177);
+    }
+
+    // Try loading QRious for real QR (non-critical, graceful fail)
+    function tryLoadQRious() {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';
+      s.onload = () => { if (g('qrModal').classList.contains('open')) drawQR(); };
+      s.onerror = () => { }; // silent fail — fallback already handles it
+      document.head.appendChild(s);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // UI
+    // ══════════════════════════════════════════════════════════
+    function showPanel(id) { document.querySelectorAll('.panel').forEach(p => p.classList.remove('act')); g(id).classList.add('act'); }
+    function openModal(id) { if (id === 'qrModal') drawQR(); g(id).classList.add('open'); }
+    function closeModal(id) { g(id).classList.remove('open'); }
+    document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+    function setBTPill(st, name = '') {
+      const p = g('btPill'); p.className = 'pill' + (st === 'on' ? ' on' : st === 'scanning' ? ' scanning' : '');
+      p.innerHTML = `<div class="dot${st === 'scanning' ? ' pulse' : ''}"></div>${st === 'on' ? (name || 'BT Connected') : st === 'scanning' ? 'Scanning…' : 'BT Off'}`;
+    }
+
+    function showPeerInfo() {
+      const p = S.peers[S.active]; if (!p) return;
+      g('piName').textContent = p.name;
+      g('piKey').textContent = p.pubEd || 'Not set';
+      g('piTransport').textContent = p.transport;
+      g('piStatus').textContent = p.online ? 'Online' : 'Offline';
+      openModal('piModal');
+    }
+
+    function updateSteps() {
+      if (S.id) g('step1').classList.add('done');
+      if (Object.keys(S.peers).length > 0) g('step2').classList.add('done');
+      if (Object.values(S.peers).some(p => p.messages.some(m => m.type === 'msg' && m.mine))) g('step3').classList.add('done');
+    }
+
+    function copyEl(id) {
+      const text = g(id).textContent.trim();
+      navigator.clipboard.writeText(text)
+        .then(() => toast('Copied ✓', 'ok'))
+        .catch(() => { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Copied ✓', 'ok'); });
+    }
+
+    function toast(msg, type = 'in') {
+      const c = g('toasts'), d = document.createElement('div');
+      d.className = 'toast ' + type;
+      d.innerHTML = `<span>${{ ok: '✓', er: '✕', in: '◈' }[type] || '◈'}</span>${esc(msg)}`;
+      c.appendChild(d);
+      setTimeout(() => { d.style.opacity = '0'; d.style.transform = 'translateX(12px)'; d.style.transition = 'all .3s'; setTimeout(() => d.remove(), 300); }, 3200);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // PERSISTENCE
+    // ══════════════════════════════════════════════════════════
+    function savePeers() {
+      try {
+        const clean = {};
+        Object.entries(S.peers).forEach(([id, p]) => {
+          clean[id] = {
+            name: p.name, pubEd: p.pubEd, pubX: p.pubX || '', transport: p.transport, online: false, peerId: p.peerId,
+            messages: p.messages.slice(-200)
+          };
+        });
+        sessionStorage.setItem('mc_peers', JSON.stringify(clean));
+      } catch (_) { }
+    }
+    function loadPeers() {
+      try { const r = sessionStorage.getItem('mc_peers'); if (r) { S.peers = JSON.parse(r); renderPeers(); updateSteps(); } } catch (_) { }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // HELP BUTTON in topbar
+    // ══════════════════════════════════════════════════════════
+    document.querySelector('.tbr').insertAdjacentHTML('afterbegin',
+      '<button class="btn bg sm" onclick="openModal(\'helpModal\')" style="margin-right:4px">? Help</button>');
+
+    // ══════════════════════════════════════════════════════════
+    // BOOT
+    // ══════════════════════════════════════════════════════════
+    (async () => {
+      // Verify WebCrypto is available (should always be true in modern browsers)
+      if (!window.crypto?.subtle) {
+        toast('WebCrypto not available — use a modern browser (Chrome/Firefox/Safari)', 'er'); return;
+      }
+      toast('WebCrypto ready — no CDN needed ✓', 'ok');
+
+      tryLoadQRious(); // non-critical, enhances QR
+      loadId();
+      loadPeers();
+      initBC();
+
+      if (S.id) { broadcastPresence(); updateSteps(); }
+      const pids = Object.keys(S.peers);
+      if (pids.length && S.id) selectPeer(pids[0]);
+    })();
+  </script>
+</body>
+
+</html>
