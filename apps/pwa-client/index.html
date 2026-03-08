@@ -1261,7 +1261,10 @@
   <!-- ─── QR lib (lightweight) ─── -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+  <script type="module" src="./src/main.ts"></script>
   <script>
+
+
     // ─────────────────────────────────────────────
     // STATE
     // ─────────────────────────────────────────────
@@ -1280,74 +1283,12 @@
     const getInitials = (name) => name.slice(0, 2).toUpperCase();
 
     // ─────────────────────────────────────────────
-    // CRYPTO (using libsodium via CDN)
-    // ─────────────────────────────────────────────
-    let sodium = null;
-
-    async function initSodium() {
-      // Load libsodium dynamically
-      return new Promise((resolve) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/libsodium-wrappers/0.7.13/sodium.js';
-        script.onload = async () => {
-          await window.sodium.ready;
-          sodium = window.sodium;
-          resolve();
-        };
-        document.head.appendChild(script);
-      });
-    }
-
-    async function cryptoGenerateIdentity() {
-      await sodium.ready;
-      const kp = sodium.crypto_sign_keypair();
-      const userId = sodium.to_base64(sodium.crypto_generichash(16, kp.publicKey), sodium.base64_variants.ORIGINAL);
-      return {
-        userId,
-        publicKey: sodium.to_base64(kp.publicKey, sodium.base64_variants.ORIGINAL),
-        privateKey: sodium.to_base64(kp.privateKey, sodium.base64_variants.ORIGINAL),
-      };
-    }
-
-    async function cryptoEncrypt(message, recipientPubB64, senderPrivB64) {
-      await sodium.ready;
-      const recipientPub = sodium.crypto_sign_ed25519_pk_to_curve25519(
-        sodium.from_base64(recipientPubB64, sodium.base64_variants.ORIGINAL)
-      );
-      const senderPriv = sodium.crypto_sign_ed25519_sk_to_curve25519(
-        sodium.from_base64(senderPrivB64, sodium.base64_variants.ORIGINAL)
-      );
-      const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
-      const cipher = sodium.crypto_box_easy(message, nonce, recipientPub, senderPriv);
-      return {
-        cipher: sodium.to_base64(cipher, sodium.base64_variants.ORIGINAL),
-        nonce: sodium.to_base64(nonce, sodium.base64_variants.ORIGINAL),
-      };
-    }
-
-    async function cryptoDecrypt(encrypted, senderPubB64, recipientPrivB64) {
-      await sodium.ready;
-      const senderPub = sodium.crypto_sign_ed25519_pk_to_curve25519(
-        sodium.from_base64(senderPubB64, sodium.base64_variants.ORIGINAL)
-      );
-      const recipientPriv = sodium.crypto_sign_ed25519_sk_to_curve25519(
-        sodium.from_base64(recipientPrivB64, sodium.base64_variants.ORIGINAL)
-      );
-      const cipher = sodium.from_base64(encrypted.cipher, sodium.base64_variants.ORIGINAL);
-      const nonce = sodium.from_base64(encrypted.nonce, sodium.base64_variants.ORIGINAL);
-      const decrypted = sodium.crypto_box_open_easy(cipher, nonce, senderPub, recipientPriv);
-      return new TextDecoder().decode(decrypted);
-    }
-
     // ─────────────────────────────────────────────
     // IDENTITY
     // ─────────────────────────────────────────────
     async function generateIdentity() {
-      if (!sodium) {
-        toast('Initializing crypto…', 'info');
-        await initSodium();
-      }
-      state.identity = await cryptoGenerateIdentity();
+
+      state.identity = await generateIdentity();
       updateIdentityUI();
       toast('Identity generated ✓', 'success');
 
@@ -1545,9 +1486,9 @@
       let sendText = text;
 
       // Encrypt if we have the peer's public key
-      if (peer.publicKey && sodium) {
+      if (peer.publicKey) {
         try {
-          const enc = await cryptoEncrypt(text, peer.publicKey, state.identity.privateKey);
+          const enc = await encryptMessage(text, peer.publicKey, state.identity.privateKey);
           encrypted = true;
           sendText = JSON.stringify(enc);
         } catch (e) {
@@ -1703,8 +1644,8 @@
           if (!btPeer || !state.identity) return;
 
           // Decrypt asynchronously
-          if (btPeer.publicKey && sodium) {
-            cryptoDecrypt(data, btPeer.publicKey, state.identity.privateKey)
+          if (btPeer.publicKey) {
+            decryptMessage(data, btPeer.publicKey, state.identity.privateKey)
               .then(plaintext => addMessage(btPeer.peerId, plaintext, false, true))
               .catch(() => addMessage(btPeer.peerId, '[decryption failed]', false, false));
           } else {
@@ -1887,7 +1828,6 @@
     // INIT
     // ─────────────────────────────────────────────
     (async () => {
-      await initSodium();
       toast('Crypto engine ready', 'success');
 
       // Demo peers so the UI feels alive
